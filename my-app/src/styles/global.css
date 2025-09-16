@@ -1,0 +1,11 @@
+@custom-variant dark (&:where(.dark &));
+@import "tailwindcss";
+
+@theme {
+  --dark-mode: "class";
+}
+
+/* お好みで追加 */
+:root {
+  color-scheme: light dark;
+}

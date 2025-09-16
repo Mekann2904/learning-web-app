@@ -1,0 +1,39 @@
+---
+// src/pages/tasks/[id].astro
+import Base from "../../layouts/Base.astro";
+const { id } = Astro.params;
+---
+<Base title="Task">
+  <div id="root"></div>
+  <script define:vars={{ id }} type="module">
+    import * as store from "/src/lib/storage.supabase.ts";
+    const root = document.getElementById("root");
+
+    (async () => {
+      const t = await store.get(id);
+      if (!t) {
+        root.innerHTML = `<p>見つからない。URLを間違えたか、記憶が改ざんされた。</p>`;
+        return;
+      }
+      root.innerHTML = `
+        <h1>編集</h1>
+        <form id="f" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 my-3">
+          <label>タイトル<input class="p-2 border border-current rounded-lg w-full" name="title" required value="${t.title}" /></label>
+          <label>詳細<textarea class="p-2 border border-current rounded-lg w-full" name="detail" rows="5">${t.detail ?? ""}</textarea></label>
+          <label><input type="checkbox" name="done" ${t.done ? "checked" : ""}/> 完了</label>
+          <button class="py-2 px-3 rounded-lg border border-current bg-transparent cursor-pointer" type="submit">保存</button>
+        </form>
+      `;
+      document.getElementById("f").addEventListener("submit", async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        await store.update(id, {
+          title: String(fd.get("title") || "").trim(),
+          detail: String(fd.get("detail") || "").trim(),
+          done: !!fd.get("done"),
+        });
+        location.href = "/";
+      });
+    })();
+  </script>
+</Base>

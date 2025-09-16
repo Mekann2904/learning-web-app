@@ -1,0 +1,27 @@
+---
+// src/layouts/Base.astro
+import "../styles/global.css";
+const { title = "Tasks" } = Astro.props;
+---
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    <style>
+      @view-transition { navigation: auto; } /* ページ遷移をなめらかに */
+    </style>
+  </head>
+  <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white p-6">
+    <nav class="mb-6">
+      <a href="/" class="mr-3">一覧</a>
+      <a href="/tasks/new" class="mr-3">新規</a>
+      <span id="auth"></span>
+    </nav>
+    <main class="max-w-3xl mx-auto">
+      <slot />
+    </main>
+
+    <script type="module" src="/src/scripts/layout-auth.ts"></script>
+  </body>
+</html>
