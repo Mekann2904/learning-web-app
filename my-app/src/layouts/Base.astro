@@ -1,7 +1,10 @@
 ---
 // src/layouts/Base.astro
 import "../styles/global.css";
+import SidebarLayout from "../components/SidebarLayout";
+
 const { title = "Tasks" } = Astro.props;
+const pathname = Astro.url.pathname;
 ---
 <html lang="ja">
   <head>
@@ -12,16 +15,9 @@ const { title = "Tasks" } = Astro.props;
       @view-transition { navigation: auto; } /* ページ遷移をなめらかに */
     </style>
   </head>
-  <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white p-6">
-    <nav class="mb-6">
-      <a href="/" class="mr-3">一覧</a>
-      <a href="/tasks/new" class="mr-3">新規</a>
-      <span id="auth"></span>
-    </nav>
-    <main class="max-w-3xl mx-auto">
+  <body class="bg-background text-foreground">
+    <SidebarLayout client:load title={title} pathname={pathname}>
       <slot />
-    </main>
-
-    <script type="module" src="/src/scripts/layout-auth.ts"></script>
+    </SidebarLayout>
   </body>
 </html>
