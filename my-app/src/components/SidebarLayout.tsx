@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import type { User } from "@supabase/supabase-js";
 import {
   LayoutDashboard,
   ListTodo,
@@ -28,9 +26,7 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { signInWithGoogle, signOut } from "@/lib/auth";
-import { supabaseBrowser } from "@/lib/supabase";
+ 
 
 type NavItem = {
   title: string;
@@ -85,8 +81,14 @@ const navWorkspace: NavItem[] = [
 
 export default function SidebarLayout({ title, pathname, children }: SidebarLayoutProps) {
   return (
-    <SidebarProvider className="flex min-h-svh w-full bg-background">
-      <Sidebar collapsible="icon" variant="inset" className="border-r border-sidebar-border">
+    <SidebarProvider defaultOpen={false} className="group">
+      {/* 追加: フレックスレイアウトのラッパー */}
+      <div className="flex min-h-screen w-full">
+      {/* サイドバー - 公式ドキュメントに従った構造 */}
+      <Sidebar 
+        collapsible="icon" 
+        variant="sidebar"
+      >
         <SidebarHeader className="px-3 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
@@ -149,129 +151,43 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
-          <AccountSection />
-        </SidebarFooter>
+        {/* Account footer removed as requested */}
+        <SidebarRail />
       </Sidebar>
-      <SidebarInset
-        className="md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none md:pl-[calc(var(--sidebar-width)+theme(spacing.4))] md:peer-data-[state=collapsed]:pl-[calc(var(--sidebar-width-icon)+theme(spacing.6))] md:peer-data-[collapsible=offcanvas]:pl-4 md:transition-[padding] md:duration-200 md:ease-linear"
-      >
-        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur">
-          <SidebarTrigger />
-          <div className="flex flex-1 items-center justify-between gap-4">
-            <div className="flex flex-col">
+      
+      {/* SidebarInset - 公式ドキュメントに従った構造 */}
+      <SidebarInset className="flex-1 min-h-screen w-full">
+        {/* ヘッダー - SidebarInset内に配置 */}
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <SidebarTrigger className="shrink-0" />
+            <div className="hidden md:block w-px h-6 bg-border mx-1"></div>
+            <div className="flex flex-col min-w-0">
               <span className="text-xs uppercase tracking-wider text-muted-foreground">Overview</span>
-              <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+              <h1 className="text-lg font-semibold text-foreground truncate">{title}</h1>
             </div>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
             <div className="hidden items-center gap-2 md:flex">
               <Input placeholder="タスクを検索" className="max-w-xs" />
-              <Button asChild className="whitespace-nowrap">
-                <a href="/tasks/new">新規タスク</a>
-              </Button>
             </div>
+            <Button asChild className="whitespace-nowrap">
+              <a href="/tasks/new" className="flex items-center gap-2">
+                <span className="hidden sm:inline">新規タスク</span>
+                <span className="sm:hidden">+</span>
+              </a>
+            </Button>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-6 bg-muted/30 p-4 md:p-8">
-          {children}
-        </div>
+        
+        {/* メインコンテンツ - 公式ドキュメントに従った構造 */}
+        <main className="flex-1 overflow-auto bg-background p-4 md:p-8">
+          <div className="space-y-6">
+            {children}
+          </div>
+        </main>
       </SidebarInset>
-      <SidebarRail />
+      </div>
     </SidebarProvider>
   );
-}
-
-function AccountSection() {
-  const [user, setUser] = useState<User | null>(null)
-  const [status, setStatus] = useState<"loading" | "ready">("loading")
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let ignore = false
-    const supabase = supabaseBrowser()
-
-    const loadUser = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (!ignore) {
-          setUser(user ?? null)
-          setStatus("ready")
-        }
-      } catch (err) {
-        console.error("Failed to load auth state", err)
-        if (!ignore) {
-          setError("認証状態の取得に失敗しました")
-          setStatus("ready")
-        }
-      }
-    }
-
-    loadUser()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (ignore) return
-      setUser(session?.user ?? null)
-      setStatus("ready")
-      setError(null)
-    })
-
-    return () => {
-      ignore = true
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  return (
-    <div className="rounded-md border border-dashed border-sidebar-border/70 bg-sidebar-accent/20 p-3 text-xs">
-      {status === "loading" ? (
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
-      ) : user ? (
-        <div className="space-y-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">ログイン中</p>
-            <p className="mt-1 text-sm font-semibold text-sidebar-foreground">{user.email}</p>
-          </div>
-          <p className="text-muted-foreground">
-            タスクはすべてクラウドに保存され、どこからでも同期されます。
-          </p>
-          <Button
-            variant="outline"
-            className="w-full justify-center text-sm"
-            onClick={() => {
-              void signOut()
-            }}
-          >
-            ログアウト
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-sidebar-foreground">アカウント</p>
-            <p className="text-muted-foreground">
-              ログインすると、タスクの保存やデバイス間での同期が利用できます。
-            </p>
-          </div>
-          {error ? (
-            <p className="text-destructive">{error}</p>
-          ) : null}
-          <Button
-            className="w-full justify-center text-sm"
-            onClick={() => {
-              void signInWithGoogle()
-            }}
-          >
-            Googleでログイン
-          </Button>
-        </div>
-      )}
-    </div>
-  )
 }

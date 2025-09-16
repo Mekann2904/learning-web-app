@@ -42,6 +42,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Sidebar widths for layout offset */
+  --sidebar-width: 25rem;
+  --sidebar-width-icon: 3.5rem;
+  --sidebar-width-mobile: 18rem;
 }
 
 @theme inline {
@@ -124,3 +128,119 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* 公式ドキュメントに従ったサイドバースタイル */
+  
+  /* サイドバートリガーの基本スタイル */
+  [data-sidebar="trigger"] {
+    @apply relative flex items-center justify-center;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 32px;
+    min-height: 32px;
+  }
+  
+  [data-sidebar="trigger"]:hover {
+    @apply bg-muted/90;
+  }
+  
+  [data-sidebar="trigger"]:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2;
+  }
+  
+  [data-sidebar="trigger"] svg {
+    @apply text-foreground;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* サイドバーコンテンツのスクロール最適化 */
+  [data-sidebar="content"] {
+    scrollbar-width: thin;
+    scrollbar-color: theme(colors.muted.foreground) transparent;
+  }
+  
+  [data-sidebar="content"]::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  [data-sidebar="content"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  [data-sidebar="content"]::-webkit-scrollbar-thumb {
+    background-color: theme(colors.muted.foreground);
+    border-radius: 3px;
+  }
+  
+  /* SidebarInsetの公式スタイル準拠 - デフォルトの動作を使用 */
+  [data-sidebar="inset"] {
+    @apply flex flex-col min-h-screen;
+    /* 公式のSidebarInsetコンポーネントが自動的にマージンを処理 */
+  }
+  
+  /* ヘッダーの固定とスタイル */
+  [data-sidebar="inset"] header {
+    @apply sticky top-0 z-30;
+    /* backdrop-blurとbg-background/95は既にheaderに適用済み */
+  }
+  
+  /* メインコンテンツの最適化 */
+  [data-sidebar="inset"] main {
+    @apply flex-1;
+    /* overflow-autoは既にmainタグに適用済み */
+  }
+  
+  /* グリッドレイアウトの改善 */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  
+  /* レスポンシブ対応 - 公式ドキュメントのベストプラクティスに従う */
+  @media (max-width: 768px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .grid {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+  }
+  
+  /* カスタムスクロールバー */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme(colors.muted.foreground) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: theme(colors.muted.foreground);
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: theme(colors.muted.foreground / 0.8);
+  }
+}
+

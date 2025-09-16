@@ -5,7 +5,7 @@ import ButtonDemo from "../components/ButtonDemo";
 import TaskList from "../components/TaskList";
 ---
 <Base title="Tasks">
-  <section class="grid gap-4 md:grid-cols-3">
+  <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
     <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <h2 class="text-sm font-medium text-muted-foreground">総タスク</h2>
       <p class="mt-3 text-3xl font-semibold tracking-tight">32</p>
@@ -23,14 +23,14 @@ import TaskList from "../components/TaskList";
     </div>
   </section>
 
-  <section id="tasks" class="mt-8 rounded-2xl border border-border bg-card p-6 shadow-sm">
-    <div class="flex items-center justify-between gap-4">
+  <section id="tasks" class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-center justify-between gap-4 mb-6">
       <div>
         <h2 class="text-lg font-semibold">タスク一覧</h2>
         <p class="text-sm text-muted-foreground">最新のタスクがリアルタイムに表示されます。</p>
       </div>
       <a
-        class="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80"
+        class="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
         href="/tasks/new"
       >
         タスクを追加
