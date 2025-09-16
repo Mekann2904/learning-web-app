@@ -2,16 +2,21 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 import tailwindcss from '@tailwindcss/vite';
-import path from 'path'; 
+import path from 'path';
+
+import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
   adapter: cloudflare(),
+
   vite: { 
     plugins: [tailwindcss()],
     resolve: {
       alias: { '~/': `${path.resolve('./src')}/` },
      },
   },
+
+  integrations: [react()],
 });

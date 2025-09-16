@@ -1,9 +1,11 @@
 ---
 // src/pages/index.astro
 import Base from "../layouts/Base.astro";
+import ButtonDemo from "../components/ButtonDemo";
 ---
 <Base title="Tasks">
   <h1>タスク一覧</h1>
   <div id="list"></div>
+  <ButtonDemo client:load />
   <script type="module" src="/src/scripts/tasks-page.ts"></script>
 </Base>
