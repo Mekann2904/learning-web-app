@@ -7,6 +7,10 @@ export type Task = {
   title: string;
   detail?: string;
   done: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -20,6 +24,10 @@ function map(row: Row): Task {
     title: row.title ?? "",
     detail: row.detail ?? undefined,
     done: !!row.done,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    startTime: row.start_time,
+    endTime: row.end_time,
     createdAt: new Date(created).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
@@ -51,10 +59,14 @@ export async function create(
 ): Promise<Task> {
   const supabase = supabaseBrowser();
   // user_id はDB側で default auth.uid() を使って設定されるので、ペイロードに含めない
-  const payload = {
+  const payload: Partial<Row> = {
     title: t.title,
     detail: t.detail,
     done: t.done ?? false,
+    start_date: t.startDate ?? null,
+    end_date: t.endDate ?? null,
+    start_time: t.startTime ?? null,
+    end_time: t.endTime ?? null,
   };
   const { data, error } = await supabase
     .from("tasks")
@@ -74,6 +86,10 @@ export async function update(
   if (patch.title !== undefined) payload.title = patch.title;
   if (patch.detail !== undefined) payload.detail = patch.detail;
   if (patch.done !== undefined) payload.done = patch.done;
+  if (patch.startDate !== undefined) payload.start_date = patch.startDate;
+  if (patch.endDate !== undefined) payload.end_date = patch.endDate;
+  if (patch.startTime !== undefined) payload.start_time = patch.startTime;
+  if (patch.endTime !== undefined) payload.end_time = patch.endTime;
 
   const { data, error } = await supabase
     .from("tasks")

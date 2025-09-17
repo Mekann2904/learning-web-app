@@ -3,7 +3,7 @@
 import "../styles/global.css";
 import SidebarLayout from "../components/SidebarLayout";
 
-const { title = "Tasks" } = Astro.props;
+const { title = "Tasks", noScroll = false } = Astro.props;
 const pathname = Astro.url.pathname;
 ---
 <html lang="ja">
@@ -16,8 +16,8 @@ const pathname = Astro.url.pathname;
     </style>
     <!-- 状態は保存しないため、初期表示のプレロード補助も不要 -->
   </head>
-  <body class="bg-background text-foreground">
-    <SidebarLayout client:load title={title} pathname={pathname}>
+  <body class={`bg-background text-foreground ${noScroll ? "overflow-hidden" : ""}`}>
+    <SidebarLayout client:load title={title} pathname={pathname} noScroll={noScroll}>
       <slot />
     </SidebarLayout>
   </body>

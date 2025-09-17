@@ -40,6 +40,7 @@ type SidebarLayoutProps = {
   title?: string;
   pathname: string;
   children: ReactNode;
+  noScroll?: boolean;
 };
 
 const navMain: NavItem[] = [
@@ -79,7 +80,7 @@ const navWorkspace: NavItem[] = [
   },
 ];
 
-export default function SidebarLayout({ title, pathname, children }: SidebarLayoutProps) {
+export default function SidebarLayout({ title, pathname, children, noScroll = false }: SidebarLayoutProps) {
   return (
     <SidebarProvider defaultOpen={false} className="group">
       {/* 追加: フレックスレイアウトのラッパー */}
@@ -156,7 +157,7 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
       </Sidebar>
       
       {/* SidebarInset - 公式ドキュメントに従った構造 */}
-      <SidebarInset className="flex-1 min-h-screen w-full">
+      <SidebarInset className={noScroll ? "flex min-h-screen w-full overflow-hidden" : "flex-1 min-h-screen w-full"}>
         {/* ヘッダー - SidebarInset内に配置 */}
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3 min-w-0">
@@ -181,7 +182,7 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
         </header>
         
         {/* メインコンテンツ - 公式ドキュメントに従った構造 */}
-        <main className="flex-1 overflow-auto bg-background p-4 md:p-8">
+        <main className={noScroll ? "flex-1 overflow-hidden bg-background" : "flex-1 overflow-auto bg-background p-4 md:p-8"}>
           <div className="space-y-6">
             {children}
           </div>

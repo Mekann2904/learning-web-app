@@ -16,6 +16,10 @@ export interface Database {
           title: string | null;
           detail: string | null;
           done: boolean | null;
+          start_date: string | null;
+          end_date: string | null;
+          start_time: string | null;
+          end_time: string | null;
           inserted_at: string;
           updated_at: string;
           user_id: string;
@@ -25,6 +29,10 @@ export interface Database {
           title?: string | null;
           detail?: string | null;
           done?: boolean | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
           inserted_at?: string;
           updated_at?: string;
           user_id?: string;
@@ -34,6 +42,10 @@ export interface Database {
           title?: string | null;
           detail?: string | null;
           done?: boolean | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          start_time?: string | null;
+          end_time?: string | null;
           inserted_at?: string;
           updated_at?: string;
           user_id?: string;
