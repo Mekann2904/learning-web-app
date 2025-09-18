@@ -5,6 +5,18 @@ import SidebarLayout from "../components/SidebarLayout";
 
 const { title = "Tasks", noScroll = false } = Astro.props;
 const pathname = Astro.url.pathname;
+
+const fallbackOrigin = Astro.url.origin ?? "http://localhost:4321";
+const configuredSiteUrl = import.meta.env.PUBLIC_SITE_URL ?? fallbackOrigin;
+const siteBase = configuredSiteUrl.endsWith("/") ? configuredSiteUrl : `${configuredSiteUrl}/`;
+const configuredCallbackUrl = new URL(import.meta.env.PUBLIC_AUTH_CALLBACK_URL ?? "/auth/callback", siteBase);
+const callbackPaths = Array.from(
+  new Set([
+    configuredCallbackUrl.pathname.replace(/\/$/, ""),
+    "/auth/callback",
+  ]),
+);
+const primaryCallbackPath = callbackPaths[0] ?? "/auth/callback";
 ---
 <html lang="ja">
   <head>
@@ -16,7 +28,33 @@ const pathname = Astro.url.pathname;
     </style>
     <!-- 状態は保存しないため、初期表示のプレロード補助も不要 -->
   </head>
-  <body class={`bg-background text-foreground ${noScroll ? "overflow-hidden" : ""}`}>
+  <body
+    class={`bg-background text-foreground ${noScroll ? "overflow-hidden" : ""}`}
+    data-auth-callback-paths={JSON.stringify(callbackPaths)}
+    data-auth-callback-primary={primaryCallbackPath}
+  >
+    <script>
+      if (typeof window !== "undefined") {
+        const dataset = document.body?.dataset ?? {};
+        /** @type {string[]} */
+        const callbackPaths = dataset.authCallbackPaths
+          ? JSON.parse(dataset.authCallbackPaths)
+          : ["/auth/callback"];
+        const primaryCallbackPath = dataset.authCallbackPrimary ?? callbackPaths[0] ?? "/auth/callback";
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        let isAuthCallback = false;
+        for (const p of callbackPaths) {
+          if (window.location.pathname.startsWith(p)) { isAuthCallback = true; break; }
+        }
+
+        if (code && !isAuthCallback) {
+          const target = new URL(primaryCallbackPath, window.location.origin);
+          target.search = window.location.search;
+          window.location.replace(`${target.pathname}${target.search}`);
+        }
+      }
+    </script>
     <SidebarLayout client:load title={title} pathname={pathname} noScroll={noScroll}>
       <slot />
     </SidebarLayout>

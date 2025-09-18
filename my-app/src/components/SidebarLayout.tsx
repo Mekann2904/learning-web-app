@@ -28,6 +28,21 @@ import {
 } from "@/components/ui/sidebar";
  
 
+const AUTH_CALLBACK_PATH = (() => {
+  const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "http://localhost:4321";
+  const siteBase = siteUrl.endsWith("/") ? siteUrl : `${siteUrl}/`;
+  const raw = import.meta.env.PUBLIC_AUTH_CALLBACK_URL ?? "/auth/callback";
+
+  try {
+    const url = new URL(raw, siteBase);
+    const pathname = url.pathname.replace(/\/$/, "");
+    return pathname.length > 0 ? pathname : "/auth/callback";
+  } catch (error) {
+    console.warn("Falling back to /auth/callback due to invalid PUBLIC_AUTH_CALLBACK_URL", error);
+    return "/auth/callback";
+  }
+})();
+
 type NavItem = {
   title: string;
   href: string;
@@ -68,7 +83,7 @@ const navMain: NavItem[] = [
 const navWorkspace: NavItem[] = [
   {
     title: "メンバー",
-    href: "/auth/callback",
+    href: AUTH_CALLBACK_PATH,
     icon: Users,
     description: "メンバーの認証と管理",
   },

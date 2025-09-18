@@ -1,0 +1,36 @@
+name = "my-app"
+main = "dist/_worker.js/index.js"
+compatibility_date = "2025-09-17"
+compatibility_flags = ["nodejs_compat"]
+preview_urls = true
+
+[build]
+command = "pnpm build"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[vars]
+PUBLIC_SUPABASE_URL = "https://gsmyklzskekvdczlawvp.supabase.co"
+PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzbXlrbHpza2VrdmRjemxhd3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjQ2NTIsImV4cCI6MjA3MzcwMDY1Mn0.UrnfselP5cxzIyiMbmHh8Lre-71BlG0an2_UC36akk8"
+PUBLIC_SITE_URL = "https://my-app.yinyoo2904.workers.dev"
+PUBLIC_AUTH_CALLBACK_URL = "https://my-app.yinyoo2904.workers.dev/auth/callback"
+
+[[kv_namespaces]]
+binding = "SESSION"
+id = "1a844ca26f6d4bcd95b46c805cc8e0fe"
+preview_id = "cf8a7110de9d42a7a72a301c68818940"
+
+# Local dev environment that mirrors production runtime, served at http://localhost:8787
+[env.dev]
+[env.dev.vars]
+PUBLIC_SUPABASE_URL = "https://gsmyklzskekvdczlawvp.supabase.co"
+PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzbXlrbHpza2VrdmRjemxhd3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjQ2NTIsImV4cCI6MjA3MzcwMDY1Mn0.UrnfselP5cxzIyiMbmHh8Lre-71BlG0an2_UC36akk8"
+PUBLIC_SITE_URL = "http://localhost:8787"
+PUBLIC_AUTH_CALLBACK_URL = "/auth/callback"
+
+[[env.dev.kv_namespaces]]
+binding = "SESSION"
+id = "1a844ca26f6d4bcd95b46c805cc8e0fe"
+preview_id = "cf8a7110de9d42a7a72a301c68818940"

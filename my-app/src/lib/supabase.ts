@@ -14,6 +14,12 @@ export function supabaseBrowser() {
     throw new Error('Supabase URL and anon key are required.')
   }
 
-  supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      flowType: 'pkce',
+    },
+  })
   return supabase
 }

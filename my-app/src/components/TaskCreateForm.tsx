@@ -54,13 +54,13 @@ export default function TaskCreateForm() {
     let ignore = false
     const supabase = supabaseBrowser()
     supabase.auth
-      .getUser()
+      .getSession()
       .then(({ data, error }) => {
         if (ignore) return
         if (error) {
           console.error("Failed to check auth state", error)
           setError("認証状態の確認に失敗しました。時間をおいて再度お試しください。")
-        } else if (!data.user) {
+        } else if (!data.session?.user) {
           window.location.href = "/"
         }
       })

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "printf '_worker.js\n' > dist/.assetsignore",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -38,6 +39,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "tailwindcss": "^4.1.13"
+    "tailwindcss": "^4.1.13",
+    "wrangler": "^4.37.1"
   }
 }

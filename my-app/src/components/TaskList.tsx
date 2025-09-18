@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { signInWithGoogle } from "@/lib/auth"
+import { AUTH_RESULT_STORAGE_KEY, signInWithGoogle } from "@/lib/auth"
 import { supabaseBrowser } from "@/lib/supabase"
 import * as store from "@/lib/storage.supabase"
 import type { Task } from "@/lib/storage.supabase"
@@ -85,16 +85,41 @@ export default function TaskList() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const url = new URL(window.location.href)
+    const authError = url.searchParams.get("auth_error")
+    if (authError) {
+      setError(authError)
+      url.searchParams.delete("auth_error")
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`)
+    }
+
+    try {
+      const result = window.sessionStorage.getItem(AUTH_RESULT_STORAGE_KEY)
+      window.sessionStorage.removeItem(AUTH_RESULT_STORAGE_KEY)
+
+      if (!authError && result === "session_missing") {
+        setError("ブラウザがログイン情報を保存できませんでした。別のブラウザやストレージ設定をお確かめください。")
+      }
+
+      if (result) {
+        console.info("TaskList detected auth result state", { result })
+      }
+    } catch (err) {
+      console.warn("Failed to read auth result state.", err)
+    }
+  }, [])
+
+  useEffect(() => {
     let ignore = false
     const supabase = supabaseBrowser()
 
     const loadUser = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+        const { data } = await supabase.auth.getSession()
         if (!ignore) {
-          setUser(user ?? null)
+          setUser(data.session?.user ?? null)
           setAuthStatus("ready")
         }
       } catch (err) {
@@ -207,7 +232,11 @@ export default function TaskList() {
         <Button
           className="w-full justify-center"
           onClick={() => {
-            void signInWithGoogle()
+            setError(null)
+            void signInWithGoogle().catch((err) => {
+              console.error("Failed to initiate sign-in", err)
+              setError("ログインの開始に失敗しました。時間をおいて再試行してください。")
+            })
           }}
         >
           Googleでログイン
