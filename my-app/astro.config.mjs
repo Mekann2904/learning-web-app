@@ -11,11 +11,11 @@ export default defineConfig({
   output: 'server',
   adapter: cloudflare(),
 
-  vite: { 
+  vite: {
     plugins: [tailwindcss()],
     resolve: {
       alias: { '~/': `${path.resolve('./src')}/` },
-     },
+    },
   },
 
   integrations: [react()],
