@@ -1,0 +1,64 @@
+---
+import Base from "../layouts/Base.astro";
+
+const extensions = [
+  {
+    title: "URL Blacklist Redirect",
+    description:
+      "ブラックリストに一致したサイトへアクセスした際に猫の手アニメーションを表示し、指定先へリダイレクトする Userscript。",
+    href: "/extensions/url-blacklist-redirect",
+    tag: "Userscript",
+  },
+];
+---
+<Base title="拡張機能">
+  <section class="space-y-6">
+    <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div class="flex flex-col gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-foreground">拡張機能</h2>
+          <p class="text-sm text-muted-foreground">
+            TaskWorks を強化する追加機能をカード形式でまとめています。興味のあるものを選択して詳細を確認してください。
+          </p>
+        </div>
+        <p class="text-sm text-muted-foreground">
+          Userscript の導入には <a class="text-primary underline" href="https://violentmonkey.github.io" target="_blank" rel="noreferrer">Violentmonkey</a> などのマネージャ拡張を利用できます。
+        </p>
+      </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {extensions.map((extension) => (
+        <a
+          href={extension.href}
+          class="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+        >
+          <span class="mb-3 inline-flex w-fit items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            {extension.tag}
+          </span>
+          <h3 class="text-base font-semibold text-foreground group-hover:text-primary">
+            {extension.title}
+          </h3>
+          <p class="mt-2 flex-1 text-sm text-muted-foreground">{extension.description}</p>
+          <span class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+            詳細を見る
+            <svg
+              class="size-4 transition group-hover:translate-x-1"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M5 10h10m0 0-4-4m4 4-4 4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,15 @@
+---
+import Base from "../layouts/Base.astro";
+import TodayTaskList from "../components/TodayTaskList";
+---
+<Base title="今日のタスク">
+  <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="mb-6 space-y-1">
+      <h2 class="text-lg font-semibold">今日のタスク</h2>
+      <p class="text-sm text-muted-foreground">
+        時間帯順に並んだ今日の予定と残り回数を確認できます。
+      </p>
+    </div>
+    <TodayTaskList client:load />
+  </section>
+</Base>

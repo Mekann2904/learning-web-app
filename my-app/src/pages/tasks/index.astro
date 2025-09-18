@@ -1,0 +1,23 @@
+---
+import Base from "../../layouts/Base.astro";
+import TaskList from "../../components/TaskList";
+---
+<Base title="タスク一覧">
+  <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold">タスク一覧</h2>
+        <p class="text-sm text-muted-foreground">
+          繰り返しルールと時間帯、今日の進捗をまとめて確認できます。
+        </p>
+      </div>
+      <a
+        class="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+        href="/tasks/new"
+      >
+        タスクを追加
+      </a>
+    </div>
+    <TaskList client:load />
+  </section>
+</Base>

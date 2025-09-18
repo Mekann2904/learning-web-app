@@ -1,34 +1,10 @@
 ---
 // src/pages/tasks/new.astro
 import Base from "../../layouts/Base.astro";
+import TaskCreateForm from "../../components/TaskCreateForm";
 ---
-<Base title="New Task">
-  <h1>新規タスク</h1>
-  <form id="f" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 my-3">
-    <label>タイトル<input class="p-2 border border-current rounded-lg w-full" name="title" required /></label>
-    <label>詳細<textarea class="p-2 border border-current rounded-lg w-full" name="detail" rows="5"></textarea></label>
-    <button class="py-2 px-3 rounded-lg border border-current bg-transparent cursor-pointer" type="submit">作成</button>
-  </form>
-  <script type="module">
-    import { supabaseBrowser } from "/src/lib/supabase";
-    import * as store from "/src/lib/storage.supabase.ts";
-
-    const supabase = supabaseBrowser();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("ログインしてください");
-      location.href = "/";
-      throw new Error("unauthenticated");
-    }
-
-    const f = document.getElementById("f");
-    f.addEventListener("submit", async e => {
-      e.preventDefault();
-      const fd = new FormData(f);
-      const title = String(fd.get("title") || "").trim();
-      const detail = String(fd.get("detail") || "").trim();
-      const t = await store.create({ title, detail, done: false });
-      location.href = `/tasks/${t.id}`;
-    });
-  </script>
+<Base title="New Task" noScroll>
+  <section class="p-3 md:p-5">
+    <TaskCreateForm client:load />
+  </section>
 </Base>

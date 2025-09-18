@@ -1,5 +1,5 @@
 ---
-// src/pages/auth/callback.astro
+import AuthCallbackHandler from "~/components/AuthCallbackHandler";
 ---
 <html lang="ja">
   <head>
@@ -8,6 +8,6 @@
   </head>
   <body>
     <p>認証処理中...</p>
-    <script type="module" src="/src/scripts/auth-callback.ts"></script>
+    <AuthCallbackHandler client:load />
   </body>
 </html>

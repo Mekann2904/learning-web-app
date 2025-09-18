@@ -1,14 +1,16 @@
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import {
+  CalendarClock,
   LayoutDashboard,
   ListTodo,
   PlusCircle,
+  Puzzle,
   Settings,
   Users,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import TaskSearch from "@/components/TaskSearch";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +30,21 @@ import {
 } from "@/components/ui/sidebar";
  
 
+const AUTH_CALLBACK_PATH = (() => {
+  const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "http://localhost:4321";
+  const siteBase = siteUrl.endsWith("/") ? siteUrl : `${siteUrl}/`;
+  const raw = import.meta.env.PUBLIC_AUTH_CALLBACK_URL ?? "/auth/callback";
+
+  try {
+    const url = new URL(raw, siteBase);
+    const pathname = url.pathname.replace(/\/$/, "");
+    return pathname.length > 0 ? pathname : "/auth/callback";
+  } catch (error) {
+    console.warn("Falling back to /auth/callback due to invalid PUBLIC_AUTH_CALLBACK_URL", error);
+    return "/auth/callback";
+  }
+})();
+
 type NavItem = {
   title: string;
   href: string;
@@ -40,6 +57,7 @@ type SidebarLayoutProps = {
   title?: string;
   pathname: string;
   children: ReactNode;
+  noScroll?: boolean;
 };
 
 const navMain: NavItem[] = [
@@ -48,13 +66,21 @@ const navMain: NavItem[] = [
     href: "/",
     icon: LayoutDashboard,
     description: "現在のタスク状況を確認",
+    isActive: (pathname) => pathname === "/",
+  },
+  {
+    title: "今日のタスク",
+    href: "/today",
+    icon: CalendarClock,
+    description: "今日の予定を時刻順に確認",
+    isActive: (pathname) => pathname === "/today",
   },
   {
     title: "タスク一覧",
-    href: "#tasks",
+    href: "/tasks",
     icon: ListTodo,
     description: "すべてのタスクを一覧表示",
-    isActive: (pathname) => pathname === "/",
+    isActive: (pathname) => pathname === "/tasks" || pathname.startsWith("/tasks/"),
   },
   {
     title: "新規タスク",
@@ -67,19 +93,27 @@ const navMain: NavItem[] = [
 const navWorkspace: NavItem[] = [
   {
     title: "メンバー",
-    href: "/auth/callback",
+    href: AUTH_CALLBACK_PATH,
     icon: Users,
     description: "メンバーの認証と管理",
   },
   {
+    title: "拡張機能",
+    href: "/extensions",
+    icon: Puzzle,
+    description: "追加機能をブラウズ",
+    isActive: (pathname) => pathname === "/extensions" || pathname.startsWith("/extensions/"),
+  },
+  {
     title: "設定",
-    href: "#",
+    href: "/settings",
     icon: Settings,
     description: "ワークスペースの調整",
+    isActive: (pathname) => pathname === "/settings",
   },
 ];
 
-export default function SidebarLayout({ title, pathname, children }: SidebarLayoutProps) {
+export default function SidebarLayout({ title, pathname, children, noScroll = false }: SidebarLayoutProps) {
   return (
     <SidebarProvider defaultOpen={false} className="group">
       {/* 追加: フレックスレイアウトのラッパー */}
@@ -156,7 +190,7 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
       </Sidebar>
       
       {/* SidebarInset - 公式ドキュメントに従った構造 */}
-      <SidebarInset className="flex-1 min-h-screen w-full">
+      <SidebarInset className={noScroll ? "flex min-h-screen w-full overflow-hidden" : "flex-1 min-h-screen w-full"}>
         {/* ヘッダー - SidebarInset内に配置 */}
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-3 min-w-0">
@@ -168,9 +202,7 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
             </div>
           </div>
           <div className="flex items-center gap-2 ml-auto">
-            <div className="hidden items-center gap-2 md:flex">
-              <Input placeholder="タスクを検索" className="max-w-xs" />
-            </div>
+            <TaskSearch />
             <Button asChild className="whitespace-nowrap">
               <a href="/tasks/new" className="flex items-center gap-2">
                 <span className="hidden sm:inline">新規タスク</span>
@@ -181,7 +213,7 @@ export default function SidebarLayout({ title, pathname, children }: SidebarLayo
         </header>
         
         {/* メインコンテンツ - 公式ドキュメントに従った構造 */}
-        <main className="flex-1 overflow-auto bg-background p-4 md:p-8">
+        <main className={noScroll ? "flex-1 overflow-hidden bg-background" : "flex-1 overflow-auto bg-background p-4 md:p-8"}>
           <div className="space-y-6">
             {children}
           </div>

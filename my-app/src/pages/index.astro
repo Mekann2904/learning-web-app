@@ -1,43 +1,19 @@
 ---
-// src/pages/index.astro
 import Base from "../layouts/Base.astro";
-import ButtonDemo from "../components/ButtonDemo";
-import TaskList from "../components/TaskList";
+import DashboardOverview from "../components/DashboardOverview";
 ---
-<Base title="Tasks">
-  <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+<Base title="ダッシュボード">
+  <section class="space-y-6">
     <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h2 class="text-sm font-medium text-muted-foreground">総タスク</h2>
-      <p class="mt-3 text-3xl font-semibold tracking-tight">32</p>
-      <p class="mt-2 text-xs text-muted-foreground">アクティブなプロジェクト全体</p>
-    </div>
-    <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h2 class="text-sm font-medium text-muted-foreground">今日の予定</h2>
-      <p class="mt-3 text-3xl font-semibold tracking-tight">6</p>
-      <p class="mt-2 text-xs text-muted-foreground">期限が本日のタスク</p>
-    </div>
-    <div class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h2 class="text-sm font-medium text-muted-foreground">完了率</h2>
-      <p class="mt-3 text-3xl font-semibold tracking-tight">72%</p>
-      <p class="mt-2 text-xs text-muted-foreground">先週比 +8%</p>
-    </div>
-  </section>
-
-  <section id="tasks" class="rounded-2xl border border-border bg-card p-6 shadow-sm mt-6">
-    <div class="flex items-center justify-between gap-4 mb-6">
-      <div>
-        <h2 class="text-lg font-semibold">タスク一覧</h2>
-        <p class="text-sm text-muted-foreground">最新のタスクがリアルタイムに表示されます。</p>
+      <div class="flex flex-col gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-foreground">ダッシュボード</h2>
+          <p class="text-sm text-muted-foreground">
+            タスクの進捗や最新のアクティビティをひと目で確認できます。
+          </p>
+        </div>
       </div>
-      <a
-        class="inline-flex items-center gap-2 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-        href="/tasks/new"
-      >
-        タスクを追加
-      </a>
     </div>
-    <TaskList client:load />
+    <DashboardOverview client:load />
   </section>
-
-  <ButtonDemo client:load />
 </Base>
