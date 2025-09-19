@@ -3,13 +3,19 @@ import Base from "../layouts/Base.astro";
 import TodayTaskList from "../components/TodayTaskList";
 ---
 <Base title="今日のタスク">
-  <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+  <section class="relative rounded-2xl border border-border bg-card p-6 shadow-sm">
     <div class="mb-6 space-y-1">
       <h2 class="text-lg font-semibold">今日のタスク</h2>
       <p class="text-sm text-muted-foreground">
         時間帯順に並んだ今日の予定と残り回数を確認できます。
       </p>
     </div>
+    <img
+      src="/images/cdd2bb6d2639d4ec9cbdf0713f2495b1.png"
+      alt="cat"
+      aria-hidden
+      class="pointer-events-none select-none absolute right-4 top-6 w-40 opacity-5 sm:w-56 md:w-64 lg:w-72"
+    />
     <TodayTaskList client:load />
   </section>
 </Base>

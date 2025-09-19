@@ -3,7 +3,13 @@ import Base from "../layouts/Base.astro";
 import SettingsAccountPanel from "../components/SettingsAccountPanel";
 ---
 <Base title="Settings">
-  <section class="mx-auto  space-y-6">
+  <section class="relative mx-auto space-y-6">
     <SettingsAccountPanel client:load />
+    <img
+      src="/images/177b9b26ad386ee239b1e56fbdd694e5.png"
+      alt="cats"
+      aria-hidden
+      class="pointer-events-none select-none absolute bottom-4 right-4 w-56 opacity-10 sm:w-64 md:w-72 lg:w-80"
+    />
   </section>
 </Base>

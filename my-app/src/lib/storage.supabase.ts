@@ -1,4 +1,6 @@
 // src/lib/storage.supabase.ts
+import type { SupabaseClient } from "@supabase/supabase-js"
+
 import { supabaseBrowser } from "./supabase"
 import type { Database } from "./database.types"
 
@@ -307,7 +309,7 @@ function determineTargetForDate(task: Task, isoDate: string, dayOfWeek: number):
   return total
 }
 
-function mapTaskRow(row: TaskDefQueryRow): Task {
+export function mapTaskRow(row: TaskDefQueryRow): Task {
   const periodRules: PeriodRule[] = (row.period_rules ?? []).map((rule) => ({
     id: rule.id,
     cadence: rule.cadence,
@@ -359,8 +361,8 @@ function sanitizeForIlike(value: string) {
   return value.replace(/[%,_]+/g, " ").trim()
 }
 
-export async function list(): Promise<Task[]> {
-  const supabase = supabaseBrowser()
+export async function list(client?: SupabaseClient<Database>): Promise<Task[]> {
+  const supabase = client ?? supabaseBrowser()
   const { data, error } = await supabase
     .from("task_defs")
     .select(
@@ -679,6 +681,7 @@ export async function fetchTaskOverview(options?: {
   date?: Date
   timeZone?: string
   lookbackDays?: number
+  supabase?: SupabaseClient<Database>
 }): Promise<{
   list: TaskListRow[]
   today: TodayTaskRow[]
@@ -691,7 +694,7 @@ export async function fetchTaskOverview(options?: {
   const dayOfWeek = isoDayOfWeek(dateIso)
   const lookbackDays = options?.lookbackDays ?? DEFAULT_LOOKBACK_DAYS
 
-  const tasks = await list()
+  const tasks = await list(options?.supabase)
   if (!tasks.length) {
     return { list: [], today: [], dateIso, timeZone }
   }
@@ -700,7 +703,7 @@ export async function fetchTaskOverview(options?: {
   const since = new Date(baseDate)
   since.setDate(since.getDate() - lookbackDays)
 
-  const supabase = supabaseBrowser()
+  const supabase = options?.supabase ?? supabaseBrowser()
   let execLogs: ExecLogsRow[] = []
 
   if (taskIds.length) {

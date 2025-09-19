@@ -1,114 +1,129 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useCallback, useEffect, useMemo, useState } from "react"
+import type { User } from "@supabase/supabase-js"
 import {
   ArrowUpRight,
   CheckCircle,
   Clock,
   ListChecks,
   RefreshCcw,
-} from "lucide-react";
+} from "lucide-react"
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { signInWithGoogle } from "@/lib/auth";
-import type { Task } from "@/lib/storage.supabase";
-import * as store from "@/lib/storage.supabase";
-import { supabaseBrowser } from "@/lib/supabase";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { signInWithGoogle } from "@/lib/auth"
+import type { TaskListRow, TodayTaskRow } from "@/lib/storage.supabase"
+import * as store from "@/lib/storage.supabase"
+import { supabaseBrowser } from "@/lib/supabase"
 
-const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
+const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "medium",
   timeStyle: "short",
-});
+})
 
-function formatDate(timestamp: number) {
-  return dateTimeFormatter.format(new Date(timestamp));
+type OverviewSnapshot = {
+  list: TaskListRow[]
+  today: TodayTaskRow[]
+  dateIso: string
+  timeZone: string
 }
 
-export default function DashboardOverview() {
-  const [user, setUser] = useState<User | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type DashboardOverviewProps = {
+  initialUser?: User | null
+  initialOverview?: OverviewSnapshot | null
+}
+
+export default function DashboardOverview({ initialUser = null, initialOverview = null }: DashboardOverviewProps = {}) {
+  const [user, setUser] = useState<User | null>(initialUser)
+  const [authReady, setAuthReady] = useState(Boolean(initialUser))
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [overview, setOverview] = useState<OverviewSnapshot | null>(initialOverview)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let ignore = false;
-    const supabase = supabaseBrowser();
+    let ignore = false
+    const supabase = supabaseBrowser()
 
     const loadSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (ignore) return;
-        setUser(data.session?.user ?? null);
-        setAuthReady(true);
-        setAuthError(null);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (ignore) return
+        if (sessionError) throw sessionError
+        setUser(sessionData.session?.user ?? null)
+        setAuthError(null)
       } catch (err) {
-        console.error("Failed to load auth session", err);
-        if (ignore) return;
-        setAuthError("認証状態の取得に失敗しました");
-        setAuthReady(true);
+        console.error("[overview] failed to load auth session", err)
+        if (ignore) return
+        setAuthError("認証状態の取得に失敗しました")
+        setUser(null)
+      } finally {
+        if (!ignore) setAuthReady(true)
       }
-    };
+    }
 
-    void loadSession();
+    if (!initialUser) {
+      void loadSession()
+    } else {
+      setAuthReady(true)
+    }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (ignore) return;
-      setUser(session?.user ?? null);
-      setAuthError(null);
-      setAuthReady(true);
-    });
+      if (ignore) return
+      setUser(session?.user ?? null)
+      setAuthError(null)
+    })
 
     return () => {
-      ignore = true;
-      subscription.unsubscribe();
-    };
-  }, []);
+      ignore = true
+      subscription.unsubscribe()
+    }
+  }, [initialUser])
 
-  const refreshTasks = useCallback(async () => {
+  const refreshOverview = useCallback(async () => {
     if (!user) {
-      setTasks([]);
-      return;
+      setOverview(null)
+      return
     }
-    setTasksLoading(true);
+    setLoading(true)
     try {
-      const data = await store.list();
-      setTasks(data);
-      setError(null);
+      const result = await store.fetchTaskOverview()
+      setOverview(result)
+      setError(null)
     } catch (err) {
-      console.error("Failed to fetch tasks", err);
-      setError("タスクの取得に失敗しました");
+      console.error("[overview] failed to fetch task overview", err)
+      setError("タスクの取得に失敗しました")
     } finally {
-      setTasksLoading(false);
+      setLoading(false)
     }
-  }, [user]);
+  }, [user])
 
   useEffect(() => {
-    void refreshTasks();
-  }, [refreshTasks]);
+    if (!user) return
+    if (!initialOverview) {
+      void refreshOverview()
+    }
+  }, [initialOverview, refreshOverview, user])
 
   const stats = useMemo(() => {
-    if (tasks.length === 0) {
+    const list = overview?.list ?? []
+    if (list.length === 0) {
       return {
         total: 0,
         completed: 0,
         active: 0,
         completionRate: 0,
-        lastUpdated: null as null | number,
-      };
+      }
     }
-    const completed = tasks.filter((task) => task.done).length;
-    const active = tasks.length - completed;
-    const completionRate = Math.round((completed / tasks.length) * 100);
-    const lastUpdated = tasks[0]?.updatedAt ?? null;
-    return { total: tasks.length, completed, active, completionRate, lastUpdated };
-  }, [tasks]);
+    const completed = list.filter((task) => task.statusToday === "done").length
+    const active = list.filter((task) => task.statusToday === "todo").length
+    const completionRate = Math.round((completed / list.length) * 100)
+    return { total: list.length, completed, active, completionRate }
+  }, [overview])
 
-  const recentTasks = useMemo(() => tasks.slice(0, 5), [tasks]);
+  const recentTasks = useMemo(() => (overview?.list ?? []).slice(0, 5), [overview])
 
   if (!authReady) {
     return (
@@ -116,7 +131,7 @@ export default function DashboardOverview() {
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
       </div>
-    );
+    )
   }
 
   if (authError) {
@@ -124,7 +139,7 @@ export default function DashboardOverview() {
       <Card>
         <CardContent className="py-6 text-sm text-destructive">{authError}</CardContent>
       </Card>
-    );
+    )
   }
 
   if (!user) {
@@ -142,19 +157,19 @@ export default function DashboardOverview() {
             className="w-full justify-center"
             onClick={() => {
               void signInWithGoogle().catch((err) => {
-                console.error("Failed to start sign in", err);
-              });
+                console.error("Failed to start sign in", err)
+              })
             }}
           >
             Googleでログイン
           </Button>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pt-4 md:pt-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-foreground">今日のスナップショット</h2>
@@ -162,125 +177,92 @@ export default function DashboardOverview() {
         </div>
         <div className="flex items-center gap-2">
           {error ? <span className="text-sm text-destructive">{error}</span> : null}
-          <Button variant="outline" size="sm" onClick={() => void refreshTasks()} disabled={tasksLoading}>
-            <RefreshCcw className={`mr-2 size-4 ${tasksLoading ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="sm" onClick={() => void refreshOverview()} disabled={loading}>
+            <RefreshCcw className={`mr-2 size-4 ${loading ? "animate-spin" : ""}`} />
             再読み込み
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card className="min-h-[120px] rounded-2xl border border-border/60 bg-card/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">全タスク</CardTitle>
             <ListChecks className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+          <CardContent className="pt-0">
+            <div className="text-3xl font-semibold tracking-tight text-foreground">{stats.total}</div>
             <p className="text-xs text-muted-foreground">保存されているタスクの総数</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-h-[120px] rounded-2xl border border-border/60 bg-card/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">完了済み</CardTitle>
             <CheckCircle className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completed}</div>
-            <p className="text-xs text-muted-foreground">完了マークされたタスク</p>
+          <CardContent className="pt-0">
+            <div className="text-3xl font-semibold tracking-tight text-foreground">{stats.completed}</div>
+            <p className="text-xs text-muted-foreground">今日完了したタスク</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-h-[120px] rounded-2xl border border-border/60 bg-card/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">進行中</CardTitle>
             <Clock className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">まだ完了していないタスク</p>
+          <CardContent className="pt-0">
+            <div className="text-3xl font-semibold tracking-tight text-foreground">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">今日の残りタスク</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="min-h-[120px] rounded-2xl border border-border/60 bg-card/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">完了率</CardTitle>
+            <CardTitle className="text-sm font-medium">達成率</CardTitle>
             <ArrowUpRight className="size-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completionRate}%</div>
-            <p className="text-xs text-muted-foreground">全タスクに対する完了済みの割合</p>
+          <CardContent className="pt-0">
+            <div className="text-3xl font-semibold tracking-tight text-foreground">{stats.completionRate}%</div>
+            <p className="text-xs text-muted-foreground">今日のタスク達成率</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">最新の更新</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {tasksLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : recentTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">表示できるタスクがありません。</p>
-            ) : (
-              <ul className="space-y-3">
-                {recentTasks.map((task) => (
-                  <li key={task.id} className="rounded-lg border border-border bg-card/50 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{task.title}</p>
-                        {task.detail ? (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {task.detail.length > 120 ? `${task.detail.slice(0, 120)}…` : task.detail}
-                          </p>
-                        ) : null}
-                      </div>
-                      <span
-                        className={
-                          task.done
-                            ? "inline-flex rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600"
-                            : "inline-flex rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-600"
-                        }
-                      >
-                        {task.done ? "完了" : "進行中"}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>更新: {formatDate(task.updatedAt)}</span>
-                      <a className="text-primary hover:underline" href={`/tasks/${task.id}`}>
-                        詳細を見る
-                      </a>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">アクション</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>タスクを追加したり進捗を更新したい場合はこちらから操作できます。</p>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild>
-                <a href="/tasks/new">新しいタスクを作成</a>
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="/tasks">タスク一覧を開く</a>
-              </Button>
+      <Card className="rounded-2xl border border-border/60 bg-card/80 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">最近のタスク</CardTitle>
+          <ArrowUpRight className="size-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
-            {stats.lastUpdated ? (
-              <p className="text-xs text-muted-foreground">最終更新: {formatDate(stats.lastUpdated)}</p>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+          ) : recentTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">最近のタスクはまだありません。</p>
+          ) : (
+            <ul className="space-y-3 text-sm">
+              {recentTasks.map((task) => (
+                <li key={task.id} className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">{task.title}</span>
+                    <span className="text-muted-foreground">
+                      更新: {dateFormatter.format(new Date(task.updatedAt))}
+                    </span>
+                    <span className="text-muted-foreground">
+                      今日: {task.completedToday}/{task.targetToday}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {task.statusToday === "done" ? "完了" : task.statusToday === "todo" ? "進行中" : "対象外"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }

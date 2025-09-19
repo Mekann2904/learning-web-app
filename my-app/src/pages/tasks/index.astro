@@ -3,7 +3,7 @@ import Base from "../../layouts/Base.astro";
 import TaskList from "../../components/TaskList";
 ---
 <Base title="タスク一覧">
-  <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+  <section class="relative rounded-2xl border border-border bg-card p-6 shadow-sm">
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-lg font-semibold">タスク一覧</h2>
@@ -18,6 +18,12 @@ import TaskList from "../../components/TaskList";
         タスクを追加
       </a>
     </div>
+    <img
+      src="/images/b0fa4c63620b32d3fe410dad0af1cdac.png"
+      alt="cat"
+      aria-hidden
+      class="pointer-events-none select-none absolute right-6 top-8 w-40 opacity-5 sm:w-56 md:w-64 lg:w-72"
+    />
     <TaskList client:load />
   </section>
 </Base>

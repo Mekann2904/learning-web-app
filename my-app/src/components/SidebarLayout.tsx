@@ -125,12 +125,12 @@ export default function SidebarLayout({ title, pathname, children, noScroll = fa
       >
         <SidebarHeader className="px-3 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
-              TW
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted shadow-sm">
+              <span className="text-2xl leading-none" aria-hidden>🐾</span>
             </div>
             <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-semibold">TaskWorks</span>
-              <span className="text-xs text-muted-foreground">あなたの作業をスマートに</span>
+              <span className="text-sm font-semibold">猫の手も借りたい</span>
+              <span className="text-xs text-muted-foreground">あなたの作業をお手伝い</span>
             </div>
           </div>
         </SidebarHeader>
