@@ -366,13 +366,13 @@ export async function list(client?: SupabaseClient<Database>): Promise<Task[]> {
   const { data, error } = await supabase
     .from("task_defs")
     .select(
-      `id, title, description, kind, active, start_date, end_date, created_at, updated_at,
+      `id, user_id, title, description, kind, active, start_date, end_date, created_at, updated_at,
         period_rules (*), time_rules (*), task_tags ( tag_id, tags ( id, name ) )`
     )
     .order("updated_at", { ascending: false })
 
   if (error) throw error
-  return (data ?? []).map(mapTaskRow)
+  return (data ?? []).map((row) => mapTaskRow(row as unknown as TaskDefQueryRow))
 }
 
 export async function search(query: string, limit = 8): Promise<Task[]> {
@@ -384,7 +384,7 @@ export async function search(query: string, limit = 8): Promise<Task[]> {
   const { data, error } = await supabase
     .from("task_defs")
     .select(
-      "id, title, description, kind, active, start_date, end_date, created_at, updated_at"
+      "id, user_id, title, description, kind, active, start_date, end_date, created_at, updated_at"
     )
     .or(`title.ilike.${pattern},description.ilike.${pattern}`)
     .order("updated_at", { ascending: false })
@@ -406,14 +406,14 @@ export async function get(id: string): Promise<Task | undefined> {
   const { data, error } = await supabase
     .from("task_defs")
     .select(
-      `id, title, description, kind, active, start_date, end_date, created_at, updated_at,
+      `id, user_id, title, description, kind, active, start_date, end_date, created_at, updated_at,
         period_rules (*), time_rules (*), task_tags ( tag_id, tags ( id, name ) )`
     )
     .eq("id", id)
     .maybeSingle()
 
   if (error) throw error
-  return data ? mapTaskRow(data) : undefined
+  return data ? mapTaskRow(data as unknown as TaskDefQueryRow) : undefined
 }
 
 export async function create(input: CreateTaskInput): Promise<Task> {
@@ -432,7 +432,7 @@ export async function create(input: CreateTaskInput): Promise<Task> {
     .from("task_defs")
     .insert(payload)
     .select(
-      "id, title, description, kind, active, start_date, end_date, created_at, updated_at"
+      "id, user_id, title, description, kind, active, start_date, end_date, created_at, updated_at"
     )
     .single()
 
@@ -440,12 +440,12 @@ export async function create(input: CreateTaskInput): Promise<Task> {
 
   const taskId = inserted.id
 
-  const periodRuleInputs = input.periodRules && input.periodRules.length > 0
+  const periodRuleInputs: PeriodRuleInput[] = input.periodRules && input.periodRules.length > 0
     ? input.periodRules
-    : [{ cadence: "daily", timesPerPeriod: 1, period: "day", timezone }]
+    : [{ cadence: "daily", timesPerPeriod: 1, period: "day", timezone } satisfies PeriodRuleInput]
 
   const periodRows = periodRuleInputs.map((rule) => {
-    const cadence = rule.cadence ?? "daily"
+    const cadence: PeriodRuleInput["cadence"] = rule.cadence ?? "daily"
     return {
       task_id: taskId,
       cadence,
@@ -485,13 +485,13 @@ export async function create(input: CreateTaskInput): Promise<Task> {
   }
 
   if (input.tags && input.tags.length) {
-    const existingTags = new Map<string, TagsRow>()
+    const existingTags = new Map<string, Pick<TagsRow, "id" | "name">>()
     const lowerNames = input.tags.map((name) => name.trim()).filter(Boolean)
 
     if (lowerNames.length) {
       const { data: tagRows, error: tagError } = await supabase
         .from("tags")
-        .select("id, name")
+        .select("id, name, user_id, created_at")
         .in("name", lowerNames)
 
       if (tagError) throw tagError
@@ -504,7 +504,7 @@ export async function create(input: CreateTaskInput): Promise<Task> {
         const { data: insertedTags, error: newTagError } = await supabase
           .from("tags")
           .insert(newTags.map((name) => ({ name })))
-          .select("id, name")
+          .select("id, name, user_id, created_at")
 
         if (newTagError) throw newTagError
         for (const tag of insertedTags ?? []) {
@@ -514,7 +514,7 @@ export async function create(input: CreateTaskInput): Promise<Task> {
 
       const links = lowerNames
         .map((name) => existingTags.get(name))
-        .filter((tag): tag is TagsRow => !!tag)
+        .filter((tag): tag is Pick<TagsRow, "id" | "name"> => !!tag)
         .map((tag) => ({ task_id: taskId, tag_id: tag.id }))
 
       if (links.length) {
@@ -559,12 +559,12 @@ export async function update(id: string, patch: UpdateTaskInput): Promise<Task |
     const { error: clearPeriod } = await supabase.from("period_rules").delete().eq("task_id", id)
     if (clearPeriod) throw clearPeriod
 
-    const inputs = patch.periodRules.length
+    const inputs: PeriodRuleInput[] = patch.periodRules.length
       ? patch.periodRules
-      : [{ cadence: "daily", timesPerPeriod: 1, period: "day", timezone }]
+      : [{ cadence: "daily", timesPerPeriod: 1, period: "day", timezone } satisfies PeriodRuleInput]
 
     const rows = inputs.map((rule) => {
-      const cadence = rule.cadence ?? "daily"
+      const cadence: PeriodRuleInput["cadence"] = rule.cadence ?? "daily"
       return {
         task_id: id,
         cadence,
@@ -619,10 +619,10 @@ export async function update(id: string, patch: UpdateTaskInput): Promise<Task |
     if (clearError) throw clearError
 
     if (tagNames.length) {
-      const existing = new Map<string, TagsRow>()
+      const existing = new Map<string, Pick<TagsRow, "id" | "name">>()
       const { data: tagRows, error: tagError } = await supabaseClient
         .from("tags")
-        .select("id, name")
+        .select("id, name, user_id, created_at")
         .in("name", tagNames)
 
       if (tagError) throw tagError
@@ -636,7 +636,7 @@ export async function update(id: string, patch: UpdateTaskInput): Promise<Task |
         const { data: newTags, error: addError } = await supabaseClient
           .from("tags")
           .insert(missing.map((name) => ({ name })))
-          .select("id, name")
+          .select("id, name, user_id, created_at")
 
         if (addError) throw addError
         for (const tag of newTags ?? []) {
@@ -646,7 +646,7 @@ export async function update(id: string, patch: UpdateTaskInput): Promise<Task |
 
       const links = tagNames
         .map((name) => existing.get(name))
-        .filter((tag): tag is TagsRow => !!tag)
+        .filter((tag): tag is Pick<TagsRow, "id" | "name"> => !!tag)
         .map((tag) => ({ task_id: id, tag_id: tag.id }))
 
       if (links.length) {
@@ -669,6 +669,17 @@ export async function logExecution(taskId: string, qty = 1): Promise<void> {
   }
   const { error } = await supabase.from("exec_logs").insert(payload)
   if (error) throw error
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("taskworks:task-executed", {
+        detail: {
+          taskId,
+          qty: amount,
+        },
+      })
+    )
+  }
 }
 
 export async function remove(id: string): Promise<void> {
@@ -709,7 +720,7 @@ export async function fetchTaskOverview(options?: {
   if (taskIds.length) {
     const { data, error } = await supabase
       .from("exec_logs")
-      .select("task_id, happened_at, qty")
+      .select("*")
       .gte("happened_at", since.toISOString())
       .in("task_id", taskIds)
 
@@ -757,22 +768,25 @@ export async function fetchTaskOverview(options?: {
     .filter((row) => row.targetToday > 0)
     .flatMap((row) => {
       const slots = row.timeSlots.length ? row.timeSlots : buildTimeSlots([], row.id)
-      return slots.map((slot) => ({
-        taskId: row.id,
-        slotId: slot.id,
-        title: row.title,
-        kind: row.kind,
-        tags: row.tags,
-        timeLabel: slot.label,
-        anytime: slot.anytime,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        target: row.targetToday,
-        completed: row.completedToday,
-        remaining: row.remainingToday,
-        status: row.remainingToday <= 0 ? "done" : "todo",
-        sortMinutes: slot.sortMinutes,
-      }))
+      return slots.map((slot): TodayTaskRow => {
+        const status: TodayTaskRow["status"] = row.remainingToday <= 0 ? "done" : "todo"
+        return {
+          taskId: row.id,
+          slotId: slot.id,
+          title: row.title,
+          kind: row.kind,
+          tags: row.tags,
+          timeLabel: slot.label,
+          anytime: slot.anytime,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          target: row.targetToday,
+          completed: row.completedToday,
+          remaining: row.remainingToday,
+          status,
+          sortMinutes: slot.sortMinutes,
+        }
+      })
     })
     .sort((a, b) => {
       if (a.anytime !== b.anytime) {

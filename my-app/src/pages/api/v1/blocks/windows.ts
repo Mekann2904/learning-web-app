@@ -1,17 +1,17 @@
 import type { APIRoute } from 'astro'
 import { createSupabaseServerClient } from '~/lib/supabase.server'
-import { buildBlockingWindowsFromRows } from '~/lib/block-windows'
+import { buildBlockingWindowsFromRows, getDayBounds } from '~/lib/block-windows'
 
-const DEFAULT_PRE_GRACE_MIN = 3
-const DEFAULT_POST_GRACE_MIN = 3
+const DEFAULT_PRE_GRACE_MIN = 0
+const DEFAULT_POST_GRACE_MIN = 0
 const DEFAULT_DURATION_MIN = 60
 
 const DEFAULT_REDIRECT_URL = (() => {
   const siteUrl = import.meta.env.PUBLIC_SITE_URL
   if (typeof siteUrl === 'string' && siteUrl.length > 0) {
-    return `${siteUrl.replace(/\/?$/, '')}/focus`
+    return `${siteUrl.replace(/\/?$/, '')}/`
   }
-  return 'https://taskworks.example/safe'
+  return 'https://taskworks.example/'
 })()
 
 export const OPTIONS: APIRoute = ({ request }) => {
@@ -37,7 +37,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
   const tzParam = sanitizeTimeZone(url.searchParams.get('tz'))
   const timeZone = tzParam || 'UTC'
   const dateIso = resolveDateIso(url.searchParams.get('date'), timeZone)
-  const focusOnly = resolveBoolean(url.searchParams.get('focus_only'), true)
+  const focusOnly = resolveBoolean(url.searchParams.get('focus_only'), false)
+  const mergeOverlaps = resolveBoolean(url.searchParams.get('merge'), false)
   const debugMode = resolveBoolean(url.searchParams.get('debug'), false)
   const preGrace = resolveNumber(url.searchParams.get('pre_grace_min'), DEFAULT_PRE_GRACE_MIN)
   const postGrace = resolveNumber(url.searchParams.get('post_grace_min'), DEFAULT_POST_GRACE_MIN)
@@ -57,7 +58,42 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     return jsonResponse({ error: 'Failed to fetch tasks' }, 500, request)
   }
 
-  const windows = buildBlockingWindowsFromRows(taskRows ?? [], {
+  const taskList = (taskRows ?? []) as any[]
+  const taskIds = taskList
+    .map((row) => row?.id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+  let completedCounts: Record<string, number> = {}
+
+  if (taskIds.length) {
+    const bounds = getDayBounds(dateIso, timeZone)
+    if (bounds) {
+      const { data: execLogs, error: execError } = await supabase
+        .from('exec_logs')
+        .select('task_id, happened_at, qty')
+        .in('task_id', taskIds)
+        .gte('happened_at', bounds.start.toISOString())
+        .lt('happened_at', bounds.end.toISOString())
+
+      if (execError) {
+        console.warn('[TaskWorks] Failed to fetch exec logs', execError)
+      } else {
+        const counts: Record<string, number> = {}
+        type ExecLogRow = { task_id: string | null; qty?: number | string | null }
+        for (const log of (execLogs ?? []) as ExecLogRow[]) {
+          const taskId = log.task_id
+          if (!taskId) continue
+          const qtyRaw = (log as { qty?: number | null | string }).qty
+          const qtyParsed = qtyRaw === null || qtyRaw === undefined ? 1 : Number(qtyRaw)
+          const qty = Number.isFinite(qtyParsed) ? qtyParsed : 1
+          counts[taskId] = (counts[taskId] ?? 0) + qty
+        }
+        completedCounts = counts
+      }
+    }
+  }
+
+  const windows = buildBlockingWindowsFromRows(taskList as any, {
     dateIso,
     timeZone,
     preGraceMinutes: preGrace,
@@ -65,6 +101,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     durationDefaultMinutes: durationDefault,
     redirectUrlDefault: DEFAULT_REDIRECT_URL,
     focusOnly,
+    mergeOverlaps,
+    completedCounts,
   })
 
   if (debugMode) {
@@ -75,7 +113,10 @@ export const GET: APIRoute = async ({ request, cookies }) => {
           dateIso,
           timeZone,
           focusOnly,
+          mergeOverlaps,
           taskCount: taskRows?.length ?? 0,
+          completedTaskCount: Object.keys(completedCounts).length,
+          completedCounts,
           windowCount: windows.length,
         },
       },

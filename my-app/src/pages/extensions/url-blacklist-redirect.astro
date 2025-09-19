@@ -1,9 +1,12 @@
 ---
 import Base from "../../layouts/Base.astro";
 import CopyCodeButton from "../../components/CopyCodeButton";
-import scriptSource from "../../data/extensions/url-blacklist-redirect.user.js?raw";
+import UrlBlockApiTester from "../../components/UrlBlockApiTester";
+import scriptSource from "../../violentmonkey/url-block.js?raw";
 
 const violentMonkeyUrl = "https://violentmonkey.github.io";
+const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? "";
+const defaultApiBase = siteUrl ? siteUrl.replace(/\/+$/, "") : "";
 ---
 <Base title="URL Blacklist Redirect">
   <section class="space-y-8">
@@ -15,13 +18,13 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
           </span>
           <h1 class="mt-3 text-2xl font-semibold text-foreground">URL Blacklist Redirect</h1>
           <p class="text-sm text-muted-foreground">
-            指定した URL／ドメインにアクセスした際に、短い猫の手アニメーションを表示してから任意のリンク先へリダイレクトするユーザースクリプトです。公式アプリの導入案内から配布する想定で整理されたドキュメントを掲載しています。
+            指定した URL／ドメインにアクセスした際に、TaskWorks API が返すブロック時間帯に基づいてアクセスを制御し、猫の手アニメーションを表示したのち指定先へリダイレクトする Userscript です。公式アプリ側で配布し、利用者が自分のトークンやブラックリストを設定できるように整えています。
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-3 text-sm">
           <CopyCodeButton client:load code={scriptSource} label="コードをコピー" />
           <p class="text-muted-foreground">
-            Userscript マネージャ（例: <a class="text-primary underline" href={violentMonkeyUrl} target="_blank" rel="noreferrer">Violentmonkey</a>）を用意してから貼り付けてください。
+            Userscript マネージャ（例: <a class="text-primary underline" href={violentMonkeyUrl} target="_blank" rel="noreferrer">Violentmonkey</a>）を用意してから貼り付けてください。初期状態で <code>https://my-app.yinyoo2904.workers.dev</code> に接続するよう設定済みですが、必要に応じてメニューから TaskWorks API ベース URL やトークン、キャッシュ時間、ブラックリストを変更できます。
           </p>
         </div>
       </div>
@@ -59,24 +62,36 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
             </thead>
             <tbody class="divide-y divide-border bg-card">
               <tr>
+                <td class="px-4 py-3 font-medium text-foreground">ブロック時間帯</td>
+                <td class="px-4 py-3 text-muted-foreground">TaskWorks API から取得したフォーカスタグ付きタスクをもとに自動生成。API が利用できない場合は手動登録した時間帯を採用します。</td>
+              </tr>
+              <tr>
                 <td class="px-4 py-3 font-medium text-foreground">ブラックリスト</td>
-                <td class="px-4 py-3 text-muted-foreground">ユーザが設定可能。部分一致で判定する文字列一覧を保存。</td>
+                <td class="px-4 py-3 text-muted-foreground">部分一致で判定する文字列を任意に登録。時間帯内のみリダイレクトが有効になります。</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-foreground">完了済みタスク</td>
+                <td class="px-4 py-3 text-muted-foreground">当日の目標回数を満たしたタスクは API 応答から除外され、拡張機能でもブロックされません。</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-medium text-foreground">バックグラウンド更新</td>
+                <td class="px-4 py-3 text-muted-foreground">設定したキャッシュ TTL に合わせて背後でウィンドウ情報を再取得し、タスク完了などのイベントでも即時更新されます。</td>
               </tr>
               <tr>
                 <td class="px-4 py-3 font-medium text-foreground">リダイレクト先</td>
-                <td class="px-4 py-3 text-muted-foreground">ブラックリストにマッチした場合に遷移する先をユーザが指定。</td>
+                <td class="px-4 py-3 text-muted-foreground">ブラックリストにマッチした場合に遷移する先をユーザが指定。API のポリシーにリダイレクト先が含まれている場合はそちらを優先します。</td>
               </tr>
               <tr>
                 <td class="px-4 py-3 font-medium text-foreground">アニメーション</td>
-                <td class="px-4 py-3 text-muted-foreground">画面右下から猫の手がスライドインして短時間表示（演出用）。</td>
+                <td class="px-4 py-3 text-muted-foreground">画面右下に猫の手アニメーションを表示した後、リダイレクトします。</td>
               </tr>
               <tr>
                 <td class="px-4 py-3 font-medium text-foreground">保存方式</td>
-                <td class="px-4 py-3 text-muted-foreground">Userscript のストレージ（GM.getValue / GM.setValue）を利用。外部送信なし。</td>
+                <td class="px-4 py-3 text-muted-foreground">Userscript ストレージ（GM.getValue / GM.setValue）に API 設定やブラックリスト、キャッシュを保存。外部送信は API 呼び出しのみ。</td>
               </tr>
               <tr>
                 <td class="px-4 py-3 font-medium text-foreground">メニュー</td>
-                <td class="px-4 py-3 text-muted-foreground">現在のドメイン追加・ブラックリスト編集・リダイレクト先変更などをメニューから実行。</td>
+                <td class="px-4 py-3 text-muted-foreground">ブラックリスト／リダイレクト先に加え、TaskWorks API ベース URL・トークン・キャッシュ TTL・フォーカスタグのみに絞る設定をメニューから切り替え可能。</td>
               </tr>
             </tbody>
           </table>
@@ -88,8 +103,9 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
         <ol class="space-y-3 text-sm text-muted-foreground">
           <li>対応ブラウザで Userscript 管理拡張をインストールします。<a class="text-primary underline" href={violentMonkeyUrl} target="_blank" rel="noreferrer">Violentmonkey</a> などが利用できます。</li>
           <li>本ページの「インストール」ボタンをクリック、またはスクリプトの raw URL を Userscript マネージャに読み込ませます。</li>
-          <li>スクリプトを有効化し、目的のページを再読み込みすると動作します。初期設定ではデフォルトのブラックリストとリダイレクト先が適用されます。</li>
-          <li>必要に応じて拡張メニューから「現在のドメインをブロック」「ブラックリストを編集」等を実行して挙動を調整してください。</li>
+          <li>スクリプトを有効化した後、拡張メニューから TaskWorks API ベース URL（例: <code>https://your-app.example</code> または <code>https://your-app.example/api</code> まで）と Bearer トークンを設定します。エンドポイント (<code>/api/v1/blocks/windows</code>) まで含める必要はありません。Cookie 認証を利用する場合はトークン設定を省略できます。</li>
+          <li>必要に応じてブラックリスト、手動ブロック時間帯、キャッシュ TTL を編集します。API 取得に失敗した場合は手動設定がフォールバックとして使用されます。</li>
+          <li>目的のページを再読み込みすると動作します。タスクのブロック時間帯中のみ、ブラックリストに一致したサイトがリダイレクトされます。</li>
         </ol>
         <p class="text-xs text-muted-foreground">
           インストールはすべて利用者の明示的な操作に依存します。導入時は注意事項とリスクを事前に案内してください。
@@ -108,7 +124,7 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
       <section class="space-y-3">
         <h2 class="text-xl font-semibold text-foreground">設定とカスタマイズ</h2>
         <p class="text-sm text-muted-foreground">
-          設定は Userscript マネージャのメニューから行えます。ブラックリストは部分一致で判定されるため、ドメイン単位でもパス込みでも柔軟に登録可能です。設定値はローカルに保存され、デフォルトでは外部送信されません。
+          設定は Userscript マネージャのメニューから行えます。TaskWorks API を利用する場合はベース URL とトークン、フォーカスタグのみを対象にするかどうか、キャッシュTTL（分）を切り替えられます。ブラックリストや手動時間帯は部分一致で判定でき、すべての設定値はローカルに保存されます。
         </p>
       </section>
 
@@ -123,7 +139,7 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
       <section class="space-y-3">
         <h2 class="text-xl font-semibold text-foreground">セキュリティとプライバシー</h2>
         <p class="text-sm text-muted-foreground">
-          スクリプトはローカルストレージのみを使用しますが、配布 URL が改ざんされると悪意のある挙動を注入できます。公式サイトでは配布ファイルの整合性管理を徹底し、可能であればハッシュ値や署名を公開してください。</p>
+          スクリプトはローカルストレージのみを使用しますが、配布 URL が改ざんされると悪意のある挙動を注入できます。公式サイトでは配布ファイルの整合性管理を徹底し、可能であればハッシュ値や署名を公開してください。また、API トークンを設定する場合は第三者に共有しないよう利用者へ周知してください。</p>
       </section>
 
       <section class="space-y-3">
@@ -135,16 +151,28 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
       <section class="space-y-3">
         <h2 class="text-xl font-semibold text-foreground">トラブルシューティング</h2>
         <p class="text-sm text-muted-foreground">
-          リダイレクトが発生しない場合は、Userscript が有効か、ブラックリストの記述が期待どおりかを確認してください。メニューから <code>window.location.hostname</code> をコピーして追加すると検証しやすく、エラーログは開発者ツールのコンソールで確認できます。必要に応じてスクリプトを一時的に無効化してください。</p>
+          リダイレクトが発生しない場合は、Userscript が有効か、ブラックリストの記述が期待どおりかを確認してください。API 連携を利用している場合はベース URL（ドメインまたは <code>/api</code> まで）とトークンが正しいか、<code>/api/v1/blocks/windows</code> が 200 を返しているかを開発者ツールで確認してください。必要に応じてメニューからキャッシュをクリアし、スクリプトを一時的に無効化してください。</p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-foreground">接続テスト</h2>
+        <p class="text-sm text-muted-foreground">
+          下のフォームから TaskWorks API と同じエンドポイントにリクエストを送り、レスポンスの内容やログを確認できます。既定では <code>merge=false</code> と <code>focus_only=false</code> を付与し、タスクごとの時間帯をそのまま表示します。Userscript と同じ条件を再現したい場合はトグルで各パラメータ (<code>focus_only</code> / <code>merge</code> / <code>debug</code>) を切り替えてください。
+        </p>
+        <UrlBlockApiTester client:load defaultBaseUrl={defaultApiBase || 'https://my-app.yinyoo2904.workers.dev'} defaultFocusOnly={false} />
       </section>
 
       <section class="space-y-4">
         <h2 class="text-xl font-semibold text-foreground">よくある質問（FAQ）</h2>
         <div class="space-y-3 text-sm text-muted-foreground">
           <p><strong class="font-medium text-foreground">Q:</strong> データはどこに保存されますか？<br />
-            <strong class="font-medium text-foreground">A:</strong> Userscript マネージャの GM.getValue / GM.setValue に保存され、外部送信は行いません。</p>
+            <strong class="font-medium text-foreground">A:</strong> 設定値は Userscript マネージャの GM.getValue / GM.setValue に保存されます。TaskWorks API 連携を有効にした場合のみ、指定した API へ GET リクエストを送信します。</p>
           <p><strong class="font-medium text-foreground">Q:</strong> ブラックリストの書式は？<br />
             <strong class="font-medium text-foreground">A:</strong> 部分文字列で判定します。必要なら完全一致や正規表現に拡張してください。</p>
+          <p><strong class="font-medium text-foreground">Q:</strong> タスクを完了するとどうなりますか？<br />
+            <strong class="font-medium text-foreground">A:</strong> 当日の目標回数を満たしたタスクは API レスポンスから除外され、Userscript もブロックを停止します。完了状況は TaskWorks の実行ログ（exec_logs）に基づきます。</p>
+          <p><strong class="font-medium text-foreground">Q:</strong> API トークンをどのように扱うべきですか？<br />
+            <strong class="font-medium text-foreground">A:</strong> スクリプトはトークンをローカルに保存し、HTTP ヘッダに <code>Authorization: Bearer &lt;token&gt;</code> として付与します。第三者と共有せず、必要に応じて失効・再発行してください。</p>
           <p><strong class="font-medium text-foreground">Q:</strong> 配布したら自動で全員に入りますか？<br />
             <strong class="font-medium text-foreground">A:</strong> いいえ。ユーザ自身で導入する必要があります。</p>
         </div>
@@ -154,8 +182,8 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
         <h2 class="text-xl font-semibold text-foreground">品質管理チェックリスト</h2>
         <ol class="space-y-2 text-sm text-muted-foreground">
           <li>主要ブラウザでインストール・アニメーション・リダイレクト・メニューを確認する。</li>
-          <li>ブラックリストの複数パターン（ドメイン／パス／部分一致）で試験する。</li>
-          <li>CSP が厳しいページでの動作を確認する。</li>
+          <li>TaskWorks API から時間帯を取得できるか、タイムゾーンとフォーカスタグ設定が反映されるかをテストする。</li>
+          <li>API 障害時にキャッシュや手動時間帯へフォールバックすることを確認する。</li>
           <li>バージョン番号とリリースノート、配布ページのハッシュを用意する。</li>
           <li>第三者への送信機構を組み込まない。必要な場合は利用者の明示的な同意を得る。</li>
         </ol>
@@ -164,6 +192,9 @@ const violentMonkeyUrl = "https://violentmonkey.github.io";
       <section class="space-y-3">
         <h2 class="text-xl font-semibold text-foreground">変更履歴（例）</h2>
         <ul class="space-y-2 text-sm text-muted-foreground">
+          <li><span class="font-medium text-foreground">2025-09-19 — v4.1.0:</span> API 応答をタスクごとに保持するよう <code>merge=false</code> と <code>focus_only=false</code> を既定化し、完了済みタスクを自動除外。Userscript は同じパラメータで背景同期を行い、TTL に合わせて自動更新します。</li>
+          <li><span class="font-medium text-foreground">2025-09-19 — v4.0.1:</span> API ベース URL の正規化とデフォルトの手動ブロック解除、リダイレクト先の初期値を修正。</li>
+          <li><span class="font-medium text-foreground">2025-09-19 — v4.0.0:</span> TaskWorks API 経由でブロック時間帯を自動取得できるよう更新。キャッシュ TTL、フォーカスタグ限定モード、API トークン設定を追加。</li>
           <li><span class="font-medium text-foreground">2025-09-18 — v3.2.0:</span> 猫の手アニメーション挙動を改善。ブラックリスト保存形式を配列に統一。メニュー項目を追加。</li>
         </ul>
       </section>

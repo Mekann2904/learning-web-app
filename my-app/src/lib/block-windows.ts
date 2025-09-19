@@ -36,6 +36,8 @@ export type BuildWindowOptions = {
   focusTagNames?: string[]
   focusOnly?: boolean
   redirectUrlDefault: string
+  mergeOverlaps?: boolean
+  completedCounts?: Record<string, number>
 }
 
 type TaskEntity = {
@@ -94,8 +96,10 @@ export function buildBlockingWindows(tasks: TaskEntity[], options: BuildWindowOp
     postGraceMinutes = 3,
     durationDefaultMinutes = 60,
     focusTagNames = DEFAULT_FOCUS_TAGS,
-    focusOnly = true,
+    focusOnly = false,
     redirectUrlDefault,
+    mergeOverlaps = false,
+    completedCounts = {},
   } = options
 
   if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(dateIso)) {
@@ -112,6 +116,12 @@ export function buildBlockingWindows(tasks: TaskEntity[], options: BuildWindowOp
 
     const targetCount = determineTargetForDate(task, dateIso, dayOfWeek)
     if (targetCount <= 0) continue
+
+    const completedCount = completedCounts[task.id] ?? 0
+    const remainingCount = Math.max(targetCount - completedCount, 0)
+    if (remainingCount <= 0) {
+      continue
+    }
 
     const normalizedTags = task.tags.map((tag) => sanitizeTag(tag))
     const hasFocusTag = normalizedTags.some((tag) => focusNames.includes(tag))
@@ -170,9 +180,9 @@ export function buildBlockingWindows(tasks: TaskEntity[], options: BuildWindowOp
 
   if (!windows.length) return []
 
-  const merged = mergeWindows(windows)
+  const processed = mergeOverlaps ? mergeWindows(windows) : windows
 
-  return merged.map((window) => ({
+  return processed.map((window) => ({
     start_at: window.startIso,
     end_at: window.endIso,
     reason: Array.from(window.reasons).join(' / '),
@@ -482,4 +492,13 @@ function mergeWindows(windows: IntermediateWindow[]): IntermediateWindow[] {
   }
 
   return merged
+}
+
+export function getDayBounds(dateIso: string, timeZone: string): { start: Date; end: Date } | null {
+  const start = convertMinutesToDate(dateIso, 0, timeZone)
+  const end = convertMinutesToDate(dateIso, MINUTES_IN_DAY, timeZone)
+  if (!start || !end) {
+    return null
+  }
+  return { start: start.date, end: end.date }
 }
