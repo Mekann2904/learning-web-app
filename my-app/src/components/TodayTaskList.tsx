@@ -137,7 +137,7 @@ export default function TodayTaskList() {
       if (row.status === "done") return
       setBusyTaskId(row.taskId)
       try {
-        const qty = Math.max(row.remaining, 1)
+        const qty = row.remaining > 1 ? 1 : row.remaining > 0 ? row.remaining : 1
         await store.logExecution(row.taskId, qty)
         setError(null)
         await refreshRows()

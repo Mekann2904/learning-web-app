@@ -697,7 +697,6 @@ export default function TaskEditorForm({ mode, taskId }: TaskEditorFormProps) {
                         onChange={(event) => setTimesPerPeriod(event.target.value)}
                         placeholder="1"
                       />
-                      <p className="text-xs text-muted-foreground">空欄または0で回数制限なし</p>
                     </div>
                   </div>
 
